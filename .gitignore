@@ -1,0 +1,8 @@
+# Large binary artifacts — reproducible via README, not committed
+models/
+vendor/
+*.gguf
+*.tar.gz
+
+# OS / editor noise
+.DS_Store
