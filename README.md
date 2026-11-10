@@ -73,21 +73,54 @@ edge-ai-client/
 #   -> POST http://localhost:8080/v1/chat/completions
 ```
 
+## Hardware & platforms
+
+This case study was **measured on Apple Silicon (M1 Pro, Metal)** — so the throughput
+numbers below are specific to that machine. The **approach is cross-platform**, though:
+llama.cpp runs on macOS, Linux, and Windows across CPU, NVIDIA (CUDA), AMD (ROCm/Vulkan),
+and Apple (Metal). Pick the matching prebuilt binary and the same commands work; re-run
+`benchmarks/bench.sh` to get numbers for *your* hardware.
+
+**Minimum to run Llama 3.1 8B locally:**
+
+| Precision | File size | Recommended free RAM (CPU) or VRAM (GPU) |
+| --------- | --------- | ---------------------------------------- |
+| Q4_K_M    | ~4.9 GB   | **≥ 8 GB** (model + context + KV cache)  |
+| Q8_0      | ~8.5 GB   | **≥ 12 GB**                              |
+
+**Which llama.cpp build to download** (from the [releases page](https://github.com/ggml-org/llama.cpp/releases)):
+
+| Platform / accelerator      | Release asset pattern            | Notes |
+| --------------------------- | -------------------------------- | ----- |
+| macOS Apple Silicon (Metal) | `…-bin-macos-arm64.tar.gz`       | what this repo used |
+| macOS Intel                 | `…-bin-macos-x64.tar.gz`         | CPU |
+| Linux, NVIDIA GPU           | `…-bin-ubuntu-cuda-*.zip` (or build with `-DGGML_CUDA=ON`) | needs CUDA |
+| Linux, CPU                  | `…-bin-ubuntu-x64.zip`           | any x86-64 |
+| Windows, NVIDIA GPU         | `…-bin-win-cuda-*.zip`           | needs CUDA |
+| Windows, CPU                | `…-bin-win-avx2-x64.zip`         | |
+
 ## Reproducing from scratch
 
-The binaries and models are not committed (they're large). To rebuild the environment:
+The binaries and models aren't committed (too large). Rebuild the environment:
 
 ```bash
-# llama.cpp prebuilt binaries (macOS arm64)
+# 1. llama.cpp binaries — pick the asset for YOUR platform from the table above.
+#    macOS arm64 example (what this repo used):
 curl -L -o vendor/llama.tar.gz \
   https://github.com/ggml-org/llama.cpp/releases/download/b12119/llama-b12119-bin-macos-arm64.tar.gz
 mkdir -p vendor/llama-b12119 && tar -xzf vendor/llama.tar.gz -C vendor/llama-b12119
-xattr -dr com.apple.quarantine vendor/llama-b12119   # clear macOS Gatekeeper flag
+#    macOS ONLY — clear Gatekeeper quarantine on the downloaded binaries:
+xattr -dr com.apple.quarantine vendor/llama-b12119
 
-# models (ungated GGUF redistribution)
+# 2. model (ungated GGUF redistribution) — same on every platform:
 curl -L -o models/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf \
   https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf
 ```
+
+> **Note:** the `bin/` wrapper scripts and `src/*.sh` are bash and were written for macOS.
+> On Linux they work as-is once `vendor/` holds the Linux binaries; on Windows use WSL, or
+> call the llama.cpp executables (`llama-cli`, `llama-bench`, `llama-server`) directly with
+> the same flags. GPU offload is `-ngl 99` on any backend (Metal/CUDA/ROCm).
 
 ---
 
